@@ -2,18 +2,24 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-#File Upload Response
-class FileUploadResponse(BaseModel):
-    filename: str
-    file_url: str
 
-#File Metadata (DB response)
+# Request Schema
+class FileUpload(BaseModel):
+    filename: str
+    file_size: int
+    file_type: str
+
+
+# Response Schema
 class FileResponse(BaseModel):
-    id: int
-    filename: str
-    file_url: str
-    user_id: int
-    created_at: datetime
+    id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    filename: str
+    original_filename: str
+    file_url: str
+    file_size: int
+    file_type: str
+
+    uploaded_by: str
+
+    created_at: Optional[datetime] = datetime.utcnow()

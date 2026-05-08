@@ -1,14 +1,15 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime
-from app.db import Base
 
-class File(Base):
-    __tablename__ = "files"
 
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, nullable=False)
-    file_url = Column(String, nullable=False)
+class FileModel(BaseModel):
+    filename: str
+    original_filename: str
+    file_url: str
+    file_size: int
+    file_type: str
 
-    user_id = Column(Integer, ForeignKey("users.id"))
+    uploaded_by: str
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at: Optional[datetime] = datetime.utcnow()

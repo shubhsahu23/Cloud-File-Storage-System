@@ -1,34 +1,93 @@
-from passlib.context import CryptContext
-from jose import jwt
 from datetime import datetime, timedelta
+
+from jose import JWTError, jwt
+
+from passlib.context import CryptContext
+
+from fastapi import Depends, HTTPException, status
+
+from fastapi.security import OAuth2PasswordBearer
 
 from app.config import SECRET_KEY, ALGORITHM
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.db import db
 
 
-# Hash password
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/auth/login"
+)
+
+
+# Hash Password
 def hash_password(password: str):
     return pwd_context.hash(password)
 
 
-# Verify password
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+# Verify Password
+def verify_password(
+    plain_password,
+    hashed_password
+):
+    return pwd_context.verify(
+        plain_password,
+        hashed_password
+    )
 
 
-# Create JWT token
+# Create JWT Token
 def create_access_token(data: dict):
+
     to_encode = data.copy()
 
     expire = datetime.utcnow() + timedelta(hours=1)
 
     to_encode.update({"exp": expire})
 
-    encoded_jwt = jwt.encode(
+    token = jwt.encode(
         to_encode,
         SECRET_KEY,
         algorithm=ALGORITHM
     )
 
-    return encoded_jwt
+    return token
+
+
+# Verify Current User
+async def get_current_user(
+    token: str = Depends(oauth2_scheme)
+):
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid token"
+    )
+
+    try:
+
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+
+        email = payload.get("email")
+
+        if email is None:
+            raise credentials_exception
+
+    except JWTError:
+        raise credentials_exception
+
+    user = await db.users.find_one(
+        {"email": email}
+    )
+
+    if user is None:
+        raise credentials_exception
+
+    return user

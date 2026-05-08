@@ -1,4 +1,7 @@
+from fastapi import HTTPException, status
+
 from app.db import db
+
 from app.utils.security import (
     hash_password,
     verify_password,
@@ -14,9 +17,14 @@ async def register_user(user):
     )
 
     if existing_user:
-        return {"message": "User already exists"}
+        raise HTTPException(
+            status_code=400,
+            detail="User already exists"
+        )
 
-    hashed_password = hash_password(user.password)
+    hashed_password = hash_password(
+        user.password
+    )
 
     new_user = {
         "name": user.name,
@@ -26,7 +34,9 @@ async def register_user(user):
 
     await db.users.insert_one(new_user)
 
-    return {"message": "User registered successfully"}
+    return {
+        "message": "User registered successfully"
+    }
 
 
 # Login User
@@ -37,7 +47,10 @@ async def login_user(user):
     )
 
     if not existing_user:
-        return {"message": "Invalid email"}
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid email"
+        )
 
     password_match = verify_password(
         user.password,
@@ -45,10 +58,15 @@ async def login_user(user):
     )
 
     if not password_match:
-        return {"message": "Invalid password"}
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid password"
+        )
 
     token = create_access_token(
-        {"email": existing_user["email"]}
+        {
+            "email": existing_user["email"]
+        }
     )
 
     return {
