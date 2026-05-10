@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.schemas.auth import (
-    UserRegister,
-    UserLogin
+    UserRegister
 )
 
 from app.services.auth_service import (
@@ -25,8 +25,14 @@ async def register(user: UserRegister):
 
 # Login
 @router.post("/login")
-async def login(user: UserLogin):
-    return await login_user(user)
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends()
+):
+
+    return await login_user(
+        form_data.username,
+        form_data.password
+    )
 
 
 # Protected Route

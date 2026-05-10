@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 
 from app.db import db
 
@@ -40,10 +40,13 @@ async def register_user(user):
 
 
 # Login User
-async def login_user(user):
+async def login_user(
+    email: str,
+    password: str
+):
 
     existing_user = await db.users.find_one(
-        {"email": user.email}
+        {"email": email}
     )
 
     if not existing_user:
@@ -53,7 +56,7 @@ async def login_user(user):
         )
 
     password_match = verify_password(
-        user.password,
+        password,
         existing_user["password"]
     )
 
