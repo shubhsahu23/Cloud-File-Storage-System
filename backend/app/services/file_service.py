@@ -1,8 +1,7 @@
 import boto3
 import uuid
 
-from bson import ObjectId
-from fastapi import HTTPException
+from datetime import datetime
 
 from app.db import db
 
@@ -12,6 +11,10 @@ from app.config import (
     AWS_BUCKET_NAME,
     AWS_REGION
 )
+
+from bson import ObjectId
+
+from fastapi import HTTPException
 
 
 # S3 Client
@@ -23,7 +26,7 @@ s3_client = boto3.client(
 )
 
 
-# Upload File Function
+# Upload File
 async def upload_file(
     file,
     current_user
@@ -54,7 +57,9 @@ async def upload_file(
         "original_filename": file.filename,
         "file_url": file_url,
         "file_type": file.content_type,
-        "uploaded_by": current_user["email"]
+        "file_size": file.size,
+        "uploaded_by": current_user["email"],
+        "created_at": datetime.utcnow()
     }
 
     await db.files.insert_one(file_data)
