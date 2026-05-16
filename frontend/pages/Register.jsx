@@ -2,25 +2,35 @@ import { useState } from "react";
 
 import { Link, useNavigate } from "react-router-dom";
 
+import {
+  FaUser,
+  FaEnvelope,
+  FaLock
+} from "react-icons/fa";
+
 import API from "../api/axios";
 
 function Register() {
 
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: ""
-  });
+  const [formData, setFormData] =
+    useState({
+      name: "",
+      email: "",
+      password: ""
+    });
+
 
   const handleChange = (e) => {
 
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]:
+        e.target.value
     });
   };
+
 
   const handleSubmit = async (e) => {
 
@@ -28,106 +38,153 @@ function Register() {
 
     try {
 
-      const response = await API.post(
+      await API.post(
         "/auth/register",
         formData
       );
 
-      alert(response.data.message);
+      alert(
+        "Registration Successful"
+      );
 
       navigate("/");
 
     } catch (error) {
 
       alert(
-        error.response.data.detail
+        error.response?.data?.detail ||
+        "Registration failed"
       );
     }
   };
 
+
   return (
 
-    <div className="min-h-screen bg-gradient-to-r from-indigo-500 to-blue-600 flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-indigo-100 px-4">
 
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="bg-white shadow-2xl rounded-3xl p-8 w-full max-w-md border border-gray-100">
 
-        <h1 className="text-4xl font-bold text-center text-gray-800 mb-2">
-          Create Account
-        </h1>
+        {/* Title */}
+        <div className="text-center mb-8">
 
-        <p className="text-center text-gray-500 mb-8">
-          Register to use cloud storage
-        </p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
 
-        <form onSubmit={handleSubmit}>
+            CloudVault
 
-          <div className="mb-5">
+          </h1>
 
-            <label className="block text-gray-700 mb-2">
+          <p className="text-gray-500 mt-2">
+            Create your secure account
+          </p>
+
+        </div>
+
+
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5"
+        >
+
+          {/* Name */}
+          <div>
+
+            <label className="text-gray-700 font-medium block mb-2">
               Name
             </label>
 
-            <input
-              type="text"
-              name="name"
-              placeholder="Enter your name"
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
+
+              <FaUser className="text-gray-400 mr-3" />
+
+              <input
+                type="text"
+                name="name"
+                placeholder="Enter name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="w-full outline-none bg-transparent"
+              />
+
+            </div>
 
           </div>
 
-          <div className="mb-5">
 
-            <label className="block text-gray-700 mb-2">
+          {/* Email */}
+          <div>
+
+            <label className="text-gray-700 font-medium block mb-2">
               Email
             </label>
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
+
+              <FaEnvelope className="text-gray-400 mr-3" />
+
+              <input
+                type="email"
+                name="email"
+                placeholder="Enter email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full outline-none bg-transparent"
+              />
+
+            </div>
 
           </div>
 
-          <div className="mb-6">
 
-            <label className="block text-gray-700 mb-2">
+          {/* Password */}
+          <div>
+
+            <label className="text-gray-700 font-medium block mb-2">
               Password
             </label>
 
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500">
+
+              <FaLock className="text-gray-400 mr-3" />
+
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full outline-none bg-transparent"
+              />
+
+            </div>
 
           </div>
 
+
+          {/* Button */}
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-3 rounded-xl transition duration-300"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 text-white py-3 rounded-2xl font-semibold shadow-lg transition duration-300"
           >
             Register
           </button>
 
         </form>
 
-        <p className="text-center text-gray-600 mt-6">
+
+        {/* Footer */}
+        <p className="text-center text-gray-500 mt-6">
 
           Already have an account?
+          {" "}
 
           <Link
             to="/"
-            className="text-indigo-600 font-semibold ml-2 hover:underline"
+            className="text-blue-600 font-semibold hover:underline"
           >
             Login
           </Link>

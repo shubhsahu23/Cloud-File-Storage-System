@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
+import {
+  FaCloudUploadAlt,
+  FaDownload,
+  FaTrash,
+  FaDatabase
+} from "react-icons/fa";
+
 import API from "../api/axios";
 
 function Dashboard() {
@@ -79,46 +86,49 @@ function Dashboard() {
 
     } catch (error) {
 
-      console.log(error);
+      alert(
+        error.response?.data?.detail ||
+        "Upload failed"
+      );
     }
   };
 
 
   // Delete File
- const handleDelete = async (
-  fileId
-) => {
+  const handleDelete = async (
+    fileId
+  ) => {
 
-  const confirmDelete =
-    window.confirm(
-      "Are you sure you want to delete this file?"
-    );
+    const confirmDelete =
+      window.confirm(
+        "Are you sure you want to delete this file?"
+      );
 
-  if (!confirmDelete) {
-    return;
-  }
+    if (!confirmDelete) {
+      return;
+    }
 
-  try {
+    try {
 
-    await API.delete(
-      `/files/${fileId}`,
-      {
-        headers: {
-          Authorization:
-            `Bearer ${token}`
+      await API.delete(
+        `/files/${fileId}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${token}`
+          }
         }
-      }
-    );
+      );
 
-    alert("File Deleted");
+      alert("File Deleted");
 
-    fetchFiles();
+      fetchFiles();
 
-  } catch (error) {
+    } catch (error) {
 
-    console.log(error);
-  }
-};
+      console.log(error);
+    }
+  };
 
 
   // Logout
@@ -182,6 +192,15 @@ function Dashboard() {
   );
 
 
+  // Storage Percentage
+  const storagePercentage =
+    (
+      (totalStorage /
+        (1024 * 1024 * 1024))
+      * 100
+    ).toFixed(2);
+
+
   useEffect(() => {
 
     fetchFiles();
@@ -191,48 +210,131 @@ function Dashboard() {
 
   return (
 
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
 
       {/* Navbar */}
-      <div className="bg-white shadow-md px-8 py-4 flex justify-between items-center">
+      <div className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-gray-200 shadow-sm">
 
-        <h1 className="text-2xl font-bold text-blue-600">
-          Cloud Storage
-        </h1>
+        <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
 
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg"
-        >
-          Logout
-        </button>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            CloudVault
+          </h1>
+
+          <button
+            onClick={handleLogout}
+            className="bg-gradient-to-r from-red-500 to-pink-500 hover:opacity-90 text-white px-5 py-2 rounded-2xl shadow-lg transition duration-300"
+          >
+            Logout
+          </button>
+
+        </div>
 
       </div>
 
 
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-6">
 
         {/* Storage Usage */}
-        <div className="bg-blue-100 text-blue-700 p-4 rounded-xl mb-6">
+        <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 mb-8">
 
-          Storage Used:
-          {" "}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
 
-          {
-            formatFileSize(
-              totalStorage
-            )
-          }
+            <div>
+
+              <div className="flex items-center gap-3 mb-2">
+
+                <FaDatabase className="text-blue-600 text-2xl" />
+
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Storage Usage
+                </h2>
+
+              </div>
+
+              <p className="text-gray-500 text-sm">
+                Monitor your cloud storage usage
+              </p>
+
+            </div>
+
+
+            <div className="text-left md:text-right">
+
+              <p className="text-2xl font-bold text-blue-600">
+
+                {
+                  formatFileSize(
+                    totalStorage
+                  )
+                }
+
+              </p>
+
+              <p className="text-gray-500 text-sm">
+                of 1 GB used
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* Progress Bar */}
+          <div className="w-full h-5 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-700 ease-in-out"
+              style={{
+                width:
+                  `${Math.min(
+                    storagePercentage,
+                    100
+                  )}%`
+              }}
+            />
+
+          </div>
+
+
+          <div className="flex justify-between mt-4 text-sm text-gray-600">
+
+            <p>
+              {storagePercentage}% used
+            </p>
+
+            <p>
+
+              Remaining:
+              {" "}
+
+              {
+                formatFileSize(
+                  (1024 * 1024 * 1024)
+                  - totalStorage
+                )
+              }
+
+            </p>
+
+          </div>
 
         </div>
 
 
         {/* Upload Section */}
-        <div className="bg-white p-6 rounded-2xl shadow-md mb-8">
+        <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 mb-8">
 
-          <h2 className="text-2xl font-semibold mb-4">
-            Upload File
-          </h2>
+          <div className="flex items-center gap-3 mb-5">
+
+            <FaCloudUploadAlt className="text-blue-600 text-3xl" />
+
+            <h2 className="text-2xl font-bold text-gray-800">
+              Upload File
+            </h2>
+
+          </div>
+
 
           <form
             onSubmit={handleUpload}
@@ -244,12 +346,12 @@ function Dashboard() {
               onChange={(e) =>
                 setFile(e.target.files[0])
               }
-              className="border p-3 rounded-lg w-full"
+              className="border-2 border-dashed border-blue-300 hover:border-blue-500 transition duration-300 p-4 rounded-2xl w-full bg-blue-50"
             />
 
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 text-white px-8 py-3 rounded-2xl shadow-lg transition duration-300 font-semibold"
             >
               Upload
             </button>
@@ -260,7 +362,7 @@ function Dashboard() {
 
 
         {/* Search Bar */}
-        <div className="mb-6">
+        <div className="mb-8">
 
           <input
             type="text"
@@ -269,40 +371,55 @@ function Dashboard() {
             onChange={(e) =>
               setSearch(e.target.value)
             }
-            className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-4 rounded-2xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
         </div>
 
 
-        {/* File Count */}
-        <p className="text-gray-600 mb-4">
+        {/* Files Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
 
-          Total Files:
-          {" "}
+          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">
+            Your Files
+          </h2>
 
-          {filteredFiles.length}
+          <p className="text-gray-500 font-medium">
 
-        </p>
+            Total Files:
+            {" "}
+
+            <span className="text-blue-600 font-bold">
+              {filteredFiles.length}
+            </span>
+
+          </p>
+
+        </div>
 
 
-        {/* Files Section */}
-        <h2 className="text-3xl font-bold mb-6">
-          Your Files
-        </h2>
-
-
-        {/* No Files Message */}
+        {/* Empty State */}
         {
           filteredFiles.length === 0 && (
 
-            <p className="text-gray-500">
-              No files found
-            </p>
+            <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
+
+              <FaCloudUploadAlt className="text-6xl text-blue-400 mx-auto mb-4" />
+
+              <h3 className="text-2xl font-bold text-gray-700 mb-2">
+                No Files Uploaded
+              </h3>
+
+              <p className="text-gray-500">
+                Upload your first file to get started 🚀
+              </p>
+
+            </div>
           )
         }
 
 
+        {/* Files Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
           {
@@ -310,39 +427,53 @@ function Dashboard() {
 
               <div
                 key={file._id}
-                className="bg-white p-5 rounded-2xl shadow-md"
+                className="bg-white p-6 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-gray-100"
               >
 
-                <h3 className="text-lg font-semibold mb-2 break-words">
+                {/* File Name */}
+                <h3 className="text-xl font-bold text-gray-800 mb-3 break-words">
+
                   {file.original_filename}
+
                 </h3>
 
 
+                {/* File Type */}
                 <p className="text-gray-500 text-sm mb-2">
 
                   Type:
                   {" "}
 
-                  {file.file_type}
+                  <span className="font-semibold text-gray-700">
+
+                    {file.file_type}
+
+                  </span>
 
                 </p>
 
 
+                {/* File Size */}
                 <p className="text-gray-500 text-sm mb-2">
 
                   Size:
                   {" "}
 
-                  {
-                    formatFileSize(
-                      file.file_size || 0
-                    )
-                  }
+                  <span className="font-semibold text-gray-700">
+
+                    {
+                      formatFileSize(
+                        file.file_size || 0
+                      )
+                    }
+
+                  </span>
 
                 </p>
 
 
-                <p className="text-gray-400 text-sm mb-4">
+                {/* Upload Date */}
+                <p className="text-gray-400 text-sm mb-5">
 
                   Uploaded:
                   {" "}
@@ -358,24 +489,36 @@ function Dashboard() {
                 </p>
 
 
+                {/* Buttons */}
                 <div className="flex gap-3">
 
+                  {/* Download */}
                   <a
                     href={file.file_url}
                     target="_blank"
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                    rel="noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90 text-white px-4 py-2 rounded-2xl shadow-md transition duration-300"
                   >
+
+                    <FaDownload />
+
                     Download
+
                   </a>
 
 
+                  {/* Delete */}
                   <button
                     onClick={() =>
                       handleDelete(file._id)
                     }
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-pink-600 hover:opacity-90 text-white px-4 py-2 rounded-2xl shadow-md transition duration-300"
                   >
+
+                    <FaTrash />
+
                     Delete
+
                   </button>
 
                 </div>
