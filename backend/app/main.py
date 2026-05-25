@@ -60,11 +60,28 @@ def home():
     }
 
 
-# Auto-Seed Admin Account on Startup
+from app.db import init_db, get_db
+
+
+# Initialize resources on startup
+@app.on_event("startup")
+async def startup():
+    try:
+        await init_db()
+    except Exception as e:
+        # Log and continue so the app process stays up for debugging
+        print("⚠️  MongoDB initialization failed on startup:", e)
+
+
+# Auto-Seed Admin Account on Startup (runs after DB init)
 @app.on_event("startup")
 async def seed_admin():
-    from app.db import db
     from app.utils.security import hash_password
+
+    db = get_db()
+    if db is None:
+        print("⚠️  Skipping admin seed because DB is not initialized")
+        return
 
     admin_email = "admin@gmail.com"
     existing_admin = await db.users.find_one({"email": admin_email})

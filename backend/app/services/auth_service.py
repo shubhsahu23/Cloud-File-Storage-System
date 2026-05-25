@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from app.db import db
+import app.db as db_module
 
 from app.utils.security import (
     hash_password,
@@ -12,7 +12,10 @@ from app.utils.security import (
 # Register User
 async def register_user(user):
 
-    existing_user = await db.users.find_one(
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    existing_user = await db_module.db.users.find_one(
         {"email": user.email}
     )
 
@@ -35,7 +38,7 @@ async def register_user(user):
         "role": role
     }
 
-    await db.users.insert_one(new_user)
+    await db_module.db.users.insert_one(new_user)
 
     return {
         "message": "User registered successfully"
@@ -48,7 +51,10 @@ async def login_user(
     password: str
 ):
 
-    existing_user = await db.users.find_one(
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    existing_user = await db_module.db.users.find_one(
         {"email": email}
     )
 

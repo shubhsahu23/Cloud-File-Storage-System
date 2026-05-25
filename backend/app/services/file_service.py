@@ -5,7 +5,7 @@ import uuid
 
 from datetime import datetime
 
-from app.db import db
+import app.db as db_module
 
 from app.config import (
     AWS_ACCESS_KEY,
@@ -53,8 +53,11 @@ async def upload_file(
     current_user
 ):
 
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
     # Get all user files
-    user_files = await db.files.find(
+    user_files = await db_module.db.files.find(
         {
             "uploaded_by": current_user["email"]
         }
@@ -118,7 +121,7 @@ async def upload_file(
         "is_deleted": False
     }
 
-    await db.files.insert_one(file_data)
+    await db_module.db.files.insert_one(file_data)
 
     return {
         "message": "File uploaded successfully" + (" (Local Storage)" if IS_LOCAL_STORAGE else " (AWS S3)"),
@@ -131,7 +134,10 @@ async def get_user_files(
     current_user
 ):
 
-    files = await db.files.find(
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    files = await db_module.db.files.find(
         {
             "uploaded_by": current_user["email"],
             "is_deleted": {"$ne": True}
@@ -153,8 +159,11 @@ async def delete_file(
     current_user
 ):
 
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
     # Find file in database
-    file = await db.files.find_one(
+    file = await db_module.db.files.find_one(
         {
             "_id": ObjectId(file_id),
             "uploaded_by": current_user["email"]
@@ -168,7 +177,7 @@ async def delete_file(
         )
 
     # Soft delete: update is_deleted = True and set deleted_at
-    await db.files.update_one(
+    await db_module.db.files.update_one(
         {"_id": ObjectId(file_id)},
         {
             "$set": {
@@ -189,7 +198,10 @@ async def get_file(
     current_user
 ):
 
-    file = await db.files.find_one(
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    file = await db_module.db.files.find_one(
         {
             "_id": ObjectId(file_id),
             "uploaded_by": current_user["email"]
@@ -213,8 +225,11 @@ async def get_file(
 async def delete_file_admin(
     file_id
 ):
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
     # Find file in database
-    file = await db.files.find_one(
+    file = await db_module.db.files.find_one(
         {
             "_id": ObjectId(file_id)
         }
@@ -238,7 +253,7 @@ async def delete_file_admin(
         )
 
     # Delete metadata from MongoDB
-    await db.files.delete_one(
+    await db_module.db.files.delete_one(
         {
             "_id": ObjectId(file_id)
         }
@@ -253,7 +268,10 @@ async def delete_file_admin(
 async def get_trash_files(
     current_user
 ):
-    files = await db.files.find(
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    files = await db_module.db.files.find(
         {
             "uploaded_by": current_user["email"],
             "is_deleted": True

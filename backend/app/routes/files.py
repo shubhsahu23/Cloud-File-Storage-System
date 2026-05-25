@@ -21,7 +21,7 @@ from app.utils.security import (
     get_current_user
 )
 
-from app.db import db
+import app.db as db_module
 
 router = APIRouter()
 
@@ -68,8 +68,11 @@ async def all_files(
             status_code=403,
             detail="Admin privileges required"
         )
-    
-    files = await db.files.find({}).to_list(length=None)
+
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    files = await db_module.db.files.find({}).to_list(length=None)
     for file in files:
         file["_id"] = str(file["_id"])
     return {"files": files}

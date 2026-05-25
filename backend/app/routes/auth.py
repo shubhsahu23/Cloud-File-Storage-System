@@ -14,7 +14,7 @@ from app.utils.security import (
     get_current_user
 )
 
-from app.db import db
+import app.db as db_module
 
 router = APIRouter()
 
@@ -58,7 +58,10 @@ async def get_users(
             detail="Admin privileges required"
         )
     
-    users = await db.users.find({}, {"password": 0}).to_list(length=None)
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    users = await db_module.db.users.find({}, {"password": 0}).to_list(length=None)
     for u in users:
         u["_id"] = str(u["_id"])
     return {"users": users}

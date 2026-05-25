@@ -10,7 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 from app.config import SECRET_KEY, ALGORITHM
 
-from app.db import db
+import app.db as db_module
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -77,7 +77,10 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = await db.users.find_one(
+    if db_module.db is None:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    user = await db_module.db.users.find_one(
         {"email": email}
     )
 
