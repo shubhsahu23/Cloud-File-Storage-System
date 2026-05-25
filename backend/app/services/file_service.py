@@ -17,6 +17,10 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 
+# 1 GB Storage Limit
+MAX_STORAGE = 1024 * 1024 * 1024
+
+
 # S3 Client
 s3_client = boto3.client(
     "s3",
@@ -31,6 +35,33 @@ async def upload_file(
     file,
     current_user
 ):
+
+    # Get all user files
+    user_files = await db.files.find(
+        {
+            "uploaded_by": current_user["email"]
+        }
+    ).to_list(length=None)
+
+    # Calculate current storage usage
+    current_storage = sum(
+        file.get("file_size", 0)
+        for file in user_files
+    )
+
+    # Check storage limit
+    if (
+        current_storage + file.size
+        > MAX_STORAGE
+    ):
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Storage limit exceeded "
+                "(1 GB max)"
+            )
+        )
 
     # Generate unique filename
     unique_filename = (
