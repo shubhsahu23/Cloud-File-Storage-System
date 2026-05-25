@@ -43,13 +43,14 @@ function Login() {
 
       console.log(formData);
 
-      const params = new URLSearchParams();
-      params.append("username", formData.email);
-      params.append("password", formData.password);
+      const payload = {
+        email: formData.email,
+        password: formData.password
+      };
 
       const response = await API.post(
         "/auth/login",
-        params
+        payload
       );
 
       // Save Token
