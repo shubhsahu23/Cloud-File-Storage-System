@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   FaCloudUploadAlt,
   FaDownload,
@@ -23,6 +23,7 @@ function Dashboard() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [userProfile, setUserProfile] = useState({ name: "", email: "", role: "user" });
 
   const token = localStorage.getItem("token");
 
@@ -105,10 +106,10 @@ function Dashboard() {
     }
   };
 
-  // Delete File
+  // Delete File (Move to Trash)
   const handleDelete = async (fileId) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to permanently delete this file?"
+      "Are you sure you want to move this file to the Trash Bin?"
     );
 
     if (!confirmDelete) {
@@ -122,11 +123,11 @@ function Dashboard() {
         }
       });
 
-      showToast("File deleted successfully! 🗑️", "success");
+      showToast("File moved to Trash Bin! 🗑️", "success");
       fetchFiles();
     } catch (error) {
       console.log(error);
-      showToast("Failed to delete file from cloud ❌", "error");
+      showToast("Failed to move file to trash ❌", "error");
     }
   };
 
@@ -180,6 +181,26 @@ function Dashboard() {
 
   useEffect(() => {
     fetchFiles();
+
+    // Fetch User Profile on Mount
+    const fetchProfile = async () => {
+      try {
+        const response = await API.get("/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setUserProfile(response.data);
+        
+        // Force redirect admins to their dedicated Admin Panel
+        if (response.data.role === "admin") {
+          navigate("/admin");
+        }
+      } catch (error) {
+        console.log("Failed to load user profile", error);
+      }
+    };
+    fetchProfile();
   }, []);
 
   return (
@@ -187,16 +208,32 @@ function Dashboard() {
       {/* Navbar */}
       <div className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 md:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <Link to="/dashboard" className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             CloudVault
-          </h1>
+          </Link>
 
-          <button
-            onClick={handleLogout}
-            className="bg-gradient-to-r from-red-500 to-rose-600 hover:opacity-95 text-white px-6 py-2.5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 font-semibold"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/profile"
+              className="text-gray-600 hover:text-blue-600 font-bold transition text-sm"
+            >
+              My Profile
+            </Link>
+            {userProfile.role === "admin" && (
+              <Link
+                to="/admin"
+                className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-2xl font-bold transition text-sm shadow-sm"
+              >
+                Admin Panel
+              </Link>
+            )}
+            <button
+              onClick={handleLogout}
+              className="bg-gradient-to-r from-red-500 to-rose-600 hover:opacity-95 text-white px-6 py-2.5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 font-semibold text-sm"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 

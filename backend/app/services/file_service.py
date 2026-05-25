@@ -1,3 +1,5 @@
+import os
+import shutil
 import boto3
 import uuid
 
@@ -20,14 +22,29 @@ from fastapi import HTTPException
 # 1 GB Storage Limit
 MAX_STORAGE = 1024 * 1024 * 1024
 
-
-# S3 Client
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=AWS_ACCESS_KEY,
-    aws_secret_access_key=AWS_SECRET_KEY,
-    region_name=AWS_REGION
+# Detect if AWS config has placeholder values (e.g. "your-aws-access-key")
+IS_LOCAL_STORAGE = (
+    not AWS_ACCESS_KEY or 
+    "your-" in AWS_ACCESS_KEY or 
+    not AWS_BUCKET_NAME or 
+    "your-" in AWS_BUCKET_NAME
 )
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+
+if IS_LOCAL_STORAGE:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    s3_client = None
+    print("📂 AWS Credentials are placeholders. Using local directory 'backend/uploads' for file storage.")
+else:
+    # S3 Client
+    s3_client = boto3.client(
+        "s3",
+        aws_access_key_id=AWS_ACCESS_KEY,
+        aws_secret_access_key=AWS_SECRET_KEY,
+        region_name=AWS_REGION
+    )
 
 
 # Upload File
@@ -68,19 +85,26 @@ async def upload_file(
         f"{uuid.uuid4()}-{file.filename}"
     )
 
-    # Upload to S3
-    s3_client.upload_fileobj(
-        file.file,
-        AWS_BUCKET_NAME,
-        unique_filename
-    )
-
-    # File URL
-    file_url = (
-        f"https://{AWS_BUCKET_NAME}.s3."
-        f"{AWS_REGION}.amazonaws.com/"
-        f"{unique_filename}"
-    )
+    if IS_LOCAL_STORAGE:
+        # Save file to local disk
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Point to local StaticFiles mount path
+        file_url = f"http://127.0.0.1:8000/uploads/{unique_filename}"
+    else:
+        # Upload to S3
+        s3_client.upload_fileobj(
+            file.file,
+            AWS_BUCKET_NAME,
+            unique_filename
+        )
+        file_url = (
+            f"https://{AWS_BUCKET_NAME}.s3."
+            f"{AWS_REGION}.amazonaws.com/"
+            f"{unique_filename}"
+        )
 
     # Save metadata in MongoDB
     file_data = {
@@ -90,13 +114,14 @@ async def upload_file(
         "file_type": file.content_type,
         "file_size": file.size,
         "uploaded_by": current_user["email"],
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow(),
+        "is_deleted": False
     }
 
     await db.files.insert_one(file_data)
 
     return {
-        "message": "File uploaded successfully",
+        "message": "File uploaded successfully" + (" (Local Storage)" if IS_LOCAL_STORAGE else " (AWS S3)"),
         "file_url": file_url
     }
 
@@ -108,7 +133,8 @@ async def get_user_files(
 
     files = await db.files.find(
         {
-            "uploaded_by": current_user["email"]
+            "uploaded_by": current_user["email"],
+            "is_deleted": {"$ne": True}
         }
     ).to_list(length=None)
 
@@ -121,7 +147,7 @@ async def get_user_files(
     }
 
 
-# Delete File
+# Delete File (Soft Delete)
 async def delete_file(
     file_id,
     current_user
@@ -141,21 +167,19 @@ async def delete_file(
             detail="File not found"
         )
 
-    # Delete file from S3
-    s3_client.delete_object(
-        Bucket=AWS_BUCKET_NAME,
-        Key=file["filename"]
-    )
-
-    # Delete metadata from MongoDB
-    await db.files.delete_one(
+    # Soft delete: update is_deleted = True and set deleted_at
+    await db.files.update_one(
+        {"_id": ObjectId(file_id)},
         {
-            "_id": ObjectId(file_id)
+            "$set": {
+                "is_deleted": True,
+                "deleted_at": datetime.utcnow()
+            }
         }
     )
 
     return {
-        "message": "File deleted successfully"
+        "message": "File moved to trash successfully"
     }
 
 
@@ -182,4 +206,142 @@ async def get_file(
 
     return {
         "file": file
+    }
+
+
+# Delete File (Admin)
+async def delete_file_admin(
+    file_id
+):
+    # Find file in database
+    file = await db.files.find_one(
+        {
+            "_id": ObjectId(file_id)
+        }
+    )
+
+    if not file:
+        raise HTTPException(
+            status_code=404,
+            detail="File not found"
+        )
+
+    # Delete physical file
+    if IS_LOCAL_STORAGE:
+        file_path = os.path.join(UPLOAD_DIR, file["filename"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    else:
+        s3_client.delete_object(
+            Bucket=AWS_BUCKET_NAME,
+            Key=file["filename"]
+        )
+
+    # Delete metadata from MongoDB
+    await db.files.delete_one(
+        {
+            "_id": ObjectId(file_id)
+        }
+    )
+
+    return {
+        "message": "File deleted successfully by admin"
+    }
+
+
+# Get User Trash Files
+async def get_trash_files(
+    current_user
+):
+    files = await db.files.find(
+        {
+            "uploaded_by": current_user["email"],
+            "is_deleted": True
+        }
+    ).to_list(length=None)
+
+    for file in files:
+        file["_id"] = str(file["_id"])
+
+    return {
+        "files": files
+    }
+
+
+# Restore File from Trash
+async def restore_file(
+    file_id,
+    current_user
+):
+    file = await db.files.find_one(
+        {
+            "_id": ObjectId(file_id),
+            "uploaded_by": current_user["email"],
+            "is_deleted": True
+        }
+    )
+
+    if not file:
+        raise HTTPException(
+            status_code=404,
+            detail="File not found in trash"
+        )
+
+    # Restore: update is_deleted = False and remove deleted_at
+    await db.files.update_one(
+        {"_id": ObjectId(file_id)},
+        {
+            "$set": {
+                "is_deleted": False
+            },
+            "$unset": {
+                "deleted_at": ""
+            }
+        }
+    )
+
+    return {
+        "message": "File restored successfully"
+    }
+
+
+# Permanent Delete File
+async def permanent_delete_file(
+    file_id,
+    current_user
+):
+    file = await db.files.find_one(
+        {
+            "_id": ObjectId(file_id),
+            "uploaded_by": current_user["email"],
+            "is_deleted": True
+        }
+    )
+
+    if not file:
+        raise HTTPException(
+            status_code=404,
+            detail="File not found in trash"
+        )
+
+    # Permanent delete: remove physical file
+    if IS_LOCAL_STORAGE:
+        file_path = os.path.join(UPLOAD_DIR, file["filename"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    else:
+        s3_client.delete_object(
+            Bucket=AWS_BUCKET_NAME,
+            Key=file["filename"]
+        )
+
+    # Delete metadata from MongoDB
+    await db.files.delete_one(
+        {
+            "_id": ObjectId(file_id)
+        }
+    )
+
+    return {
+        "message": "File permanently deleted from storage"
     }
