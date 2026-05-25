@@ -215,9 +215,10 @@ function Dashboard() {
           <div className="flex items-center gap-4">
             <Link
               to="/profile"
-              className="text-gray-600 hover:text-blue-600 font-bold transition text-sm"
+              className="w-10 h-10 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 font-bold rounded-full flex items-center justify-center shadow-inner transition-all duration-300 transform hover:scale-105 border border-indigo-200"
+              title="My Profile"
             >
-              My Profile
+              {userProfile.name ? userProfile.name.charAt(0).toUpperCase() : "U"}
             </Link>
             {userProfile.role === "admin" && (
               <Link
