@@ -14,6 +14,8 @@ from app.routes.files import (
     router as files_router
 )
 
+from app.config import CORS_ORIGINS
+
 app = FastAPI()
 
 # Mount local uploads directory as static files route
@@ -27,8 +29,9 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174"
+        origin.strip()
+        for origin in CORS_ORIGINS.split(",")
+        if origin.strip()
     ],
     allow_credentials=True,
     allow_methods=["*"],
