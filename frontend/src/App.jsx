@@ -7,6 +7,8 @@ import {
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import Dashboard from "../pages/Dashboard";
+import Profile from "../pages/Profile";
+import Admin from "../pages/Admin";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -34,6 +36,28 @@ function App() {
             <ProtectedRoute>
 
               <Dashboard />
+
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+
+              <Profile />
+
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+
+              <Admin />
 
             </ProtectedRoute>
           }

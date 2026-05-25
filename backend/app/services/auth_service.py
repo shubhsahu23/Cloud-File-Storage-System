@@ -26,10 +26,13 @@ async def register_user(user):
         user.password
     )
 
+    role = "admin" if user.email.lower().startswith("admin@") else "user"
+
     new_user = {
         "name": user.name,
         "email": user.email,
-        "password": hashed_password
+        "password": hashed_password,
+        "role": role
     }
 
     await db.users.insert_one(new_user)
@@ -74,5 +77,6 @@ async def login_user(
 
     return {
         "access_token": token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "role": existing_user.get("role", "user")
     }
