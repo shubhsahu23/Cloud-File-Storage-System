@@ -1,9 +1,14 @@
 import axios from "axios";
 
-const defaultApiUrl = "http://cloud-backend.ap-south-1.elasticbeanstalk.com/"; // Fallback URL for development
+const defaultApiUrl = "http://localhost:8000";
+const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? defaultApiUrl : "");
+
+if (!apiUrl) {
+  throw new Error("VITE_API_URL is required in production");
+}
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || defaultApiUrl
+  baseURL: apiUrl
 });
 
 export default API;
