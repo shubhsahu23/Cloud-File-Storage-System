@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const defaultApiUrl = "http://localhost:8000";
+const defaultApiUrl = "http://cloud-backend.ap-south-1.elasticbeanstalk.com/";
 const rawApiUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? defaultApiUrl : "");
 
 if (!rawApiUrl) {

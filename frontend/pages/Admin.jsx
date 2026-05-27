@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaUserShield, FaUsers, FaFolderOpen, FaDatabase, FaTrash, FaArrowLeft, FaFileAlt, FaSearch, FaTimes } from "react-icons/fa";
+import { FaUserShield, FaUsers, FaFolderOpen, FaDatabase, FaArrowLeft, FaFileAlt, FaSearch, FaTimes } from "react-icons/fa";
 import API from "../api/axios";
 
 function Admin() {
@@ -14,7 +14,6 @@ function Admin() {
   
   // Search state variables for premium usability
   const [searchUser, setSearchUser] = useState("");
-  const [searchFile, setSearchFile] = useState("");
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -69,30 +68,6 @@ function Admin() {
     fetchData();
   }, []);
 
-  const handleAdminDeleteFile = async (fileId, fileName) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to permanently delete the user's file "${fileName}"? This cannot be undone.`
-    );
-
-    if (!confirmDelete) return;
-
-    try {
-      await API.delete(`/files/admin/${fileId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      showToast(`Purged file "${fileName}" successfully! 🗑️`, "success");
-      
-      // Refresh global files list
-      const filesRes = await API.get("/files/all-files", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setFiles(filesRes.data.files);
-    } catch (error) {
-      console.log(error);
-      showToast("Failed to delete the file as an admin ❌", "error");
-    }
-  };
-
   // Helper size formatter
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 B";
@@ -105,11 +80,6 @@ function Admin() {
   const filteredUsers = users.filter((u) => 
     u.name.toLowerCase().includes(searchUser.toLowerCase()) ||
     u.email.toLowerCase().includes(searchUser.toLowerCase())
-  );
-
-  const filteredFiles = files.filter((f) => 
-    f.original_filename.toLowerCase().includes(searchFile.toLowerCase()) ||
-    f.uploaded_by.toLowerCase().includes(searchFile.toLowerCase())
   );
 
   // System statistics (overall)
@@ -213,7 +183,7 @@ function Admin() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           {/* Left Column: Registered Users Table */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 lg:col-span-1 flex flex-col justify-between">
             <div>
@@ -265,86 +235,6 @@ function Admin() {
                   ))
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Right Column: All Files List */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 lg:col-span-2 flex flex-col justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b border-gray-50 flex items-center gap-2">
-                <FaFolderOpen className="text-emerald-500" /> Global File Inventory
-              </h3>
-
-              {/* Inventory search bar */}
-              <div className="relative mb-4">
-                <input
-                  type="text"
-                  placeholder="Search assets by filename or owner..."
-                  value={searchFile}
-                  onChange={(e) => setSearchFile(e.target.value)}
-                  className="w-full text-xs pl-9 pr-8 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white focus:border-blue-400 transition"
-                />
-                <FaSearch className="absolute left-3.5 top-3.5 text-gray-400 text-xs" />
-                {searchFile && (
-                  <button 
-                    onClick={() => setSearchFile("")}
-                    className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 transition text-xs"
-                  >
-                    <FaTimes />
-                  </button>
-                )}
-              </div>
-
-              {filteredFiles.length === 0 ? (
-                <div className="text-center p-12 text-gray-400">
-                  <FaFolderOpen className="text-5xl mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-semibold">
-                    {searchFile ? "No files match search query." : "No uploaded inventory assets registered."}
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="text-gray-400 border-b border-gray-100 text-xs font-bold uppercase tracking-wider">
-                        <th className="pb-3 pl-2">Asset Details</th>
-                        <th className="pb-3">Uploaded By</th>
-                        <th className="pb-3 text-right">Size</th>
-                        <th className="pb-3 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {filteredFiles.map((file) => (
-                        <tr key={file._id} className="hover:bg-gray-50/50 transition">
-                          <td className="py-4 pl-2">
-                            <p className="font-bold text-gray-800 max-w-[150px] md:max-w-[200px] truncate" title={file.original_filename}>
-                              {file.original_filename}
-                            </p>
-                            <span className="text-[10px] text-gray-400 uppercase font-semibold">
-                              {file.file_type ? file.file_type.split("/")[1] || file.file_type : "File"}
-                            </span>
-                          </td>
-                          <td className="py-4 text-xs font-semibold text-gray-500 max-w-[120px] truncate" title={file.uploaded_by}>
-                            {file.uploaded_by}
-                          </td>
-                          <td className="py-4 text-right font-bold text-gray-700 text-xs">
-                            {formatFileSize(file.file_size || 0)}
-                          </td>
-                          <td className="py-4 text-center">
-                            <button
-                              onClick={() => handleAdminDeleteFile(file._id, file.original_filename)}
-                              className="text-rose-500 hover:text-rose-700 p-2.5 rounded-xl hover:bg-rose-50 transition"
-                              title="Force Delete Asset"
-                            >
-                              <FaTrash className="text-sm" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
           </div>
         </div>
